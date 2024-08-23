@@ -1,0 +1,370 @@
+Bootstrap: docker
+From: ubuntu:22.04
+Stage: build
+
+# A very asic singularity definition file for tools used in Zhang et al [doi:xxx].
+
+%setup
+  # Create destination and temporary folder.
+  mkdir -p ${APPTAINER_ROOTFS}/opt/temp
+  mkdir -p ${APPTAINER_ROOTFS}/opt/tools
+
+
+%files
+  # NCBI tools
+  /home/zzhang/Downloads/sratoolkit.3.1.0-ubuntu64.tar.gz /opt/temp
+
+  # FASTQ preprocessing 
+  /home/zzhang/Downloads/fastp-0.23.4.tar.gz /opt/temp
+
+  # Aligner
+  /home/zzhang/Downloads/STAR-2.7.11b.tar.gz /opt/temp
+  /home/zzhang/Downloads/bwa-0.7.18.tar.bz2 /opt/temp
+  /home/zzhang/Downloads/bigWig-0.2-9.tar.gz /opt/temp
+
+  # RNA quantification
+  /home/zzhang/Downloads/subread-2.0.6-Linux-x86_64.tar.gz /opt/temp
+  /opt/temp/salmon-1.10.0_linux_x86_64.tar.gz /opt/temp
+
+  # GWAS
+  # /home/zzhang/Downloads/bgen-v1.1.7.tgz /opt/temp
+  # /home/zzhang/Downloads/regenie-v3.2.8.zip /opt/temp
+  /home/zzhang/Downloads/plink_linux_x86_64_20230116.zip /opt/temp
+  /home/zzhang/Downloads/qctool_v2.2.0-CentOS_Linux7.8.2003-x86_64.tgz /opt/temp
+  /home/zzhang/Downloads/admixture_linux-1.3.0.tar.gz /opt/temp
+  /home/zzhang/Downloads/gcta-1.94.1-linux-x86_64-static /opt/temp
+
+  ## Dependencies for QTLtools
+  /home/zzhang/Downloads/QTLtools-1.3.1.tar.gz /opt/temp
+  /home/zzhang/Downloads/R-4.1.0.tar.gz /opt/temp
+
+  # Genetic variant calling
+  /home/zzhang/Downloads/bedops-2.4.41.tar.gz /opt/temp
+  /home/zzhang/Downloads/bedtools-2.31.1.tar.gz /opt/temp
+  /home/zzhang/Downloads/htslib-1.17.tar.bz2 /opt/temp
+  /home/zzhang/Downloads/bcftools-1.17.tar.bz2 /opt/temp
+  /home/zzhang/Downloads/samtools-1.17.tar.bz2 /opt/temp
+  /home/zzhang/Downloads/gatk-4.5.0.0.zip /opt/temp
+
+  # PRO-seq/GRO-seq
+  # /home/zzhang/Downloads/Rgtsvm /opt/temp
+  /home/zzhang/Downloads/dREG.tar.gz /opt/temp
+
+  # bigWig and Bed utilities
+  /home/zzhang/Downloads/hgdownload.soe.ucsc.edu.tar.gz /opt/temp
+
+  # CUDA toolkit 11.7
+  /home/zzhang/Downloads/cuda_11.7.0_515.43.04_linux.run /opt/temp
+
+
+%environment
+  export LC_ALL=C
+
+
+%post
+  ls /opt
+
+  # Using China mirror and refresh the apt repository
+  sed -i 's/\/\/archive.ubuntu.com/\/\/cn.archive.ubuntu.com/g' /etc/apt/sources.list
+  apt update -qq
+
+  # Install tzdata but in a non-interactive mode
+  echo 8 > /opt/temp/input.txt
+  echo 1 >> /opt/temp/input.txt
+  apt install -y tzdata < /opt/temp/input.txt
+  echo Europe/Amsterdam > /etc/timezone
+  ln -fs /usr/share/zoneinfo/Europe/Amsterdam /etc/localtime
+
+  # Essential (maybe) packages
+  apt install -y --no-install-recommends build-essential cmake gdb gfortran autoconf automake wget git gzip zip bzip2 \
+    xxd pkg-config fossil lbzip2 libgomp1 \
+    libgsl-dev libx11-dev libboost1.74-all-dev libreadline-dev libxt-dev libpcre2-dev \
+    libbz2-1.0 libbz2-dev \
+    liblzma5 liblzma-dev \
+    zlib1g zlib1g-dev \
+    libzstd1 libzstd-dev \
+    libdb5.3 libdb5.3-dev \
+    libsqlite3-0 libsqlite3-dev \
+    libncurses5 libncurses5-dev \
+    libcurl4 libcurl4-openssl-dev \
+    libssl3 libssl-dev \
+    libxml2 libxml2-dev \
+    libfontconfig1 libfontconfig1-dev \
+    libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev libgit2-dev \
+    libblas-dev liblapack-dev \
+    libmysqlclient-dev libisal-dev \
+    python3 python3-dev python3-pip python3-wheel python3.10-venv python-is-python3 \
+    r-base openjdk-8-jre-headless openjdk-17-jre-headless
+
+  # # # Install BGEN
+  # # mkdir -p /opt/tools/bgen/1.1.7
+  # # # wget -cO /opt/temp/bgen-v1.1.7.tgz http://code.enkre.net/bgen/tarball/release/v1.1.7
+  # # tar xf /opt/temp/bgen-v1.1.7.tgz -C /opt/temp
+  # # cd /opt/temp/v1.1.7
+  # # python3 waf configure --prefix=/opt/tools/bgen/1.1.7 && python3 waf && python3 waf install
+  # # ln -s /opt/tools/bgen/1.1.7/bin/bgenix /usr/local/bin/bgenix
+  # # ln -s /opt/tools/bgen/1.1.7/bin/cat-bgen /usr/local/bin
+
+  # # # Install regenie dependented on BGEN
+  # # mkdir -p /opt/tools/regenie/3.2.8
+  # # # wget -cO /opt/temp/regenie-v3.2.8.zip https://github.com/rgcgithub/regenie/archive/refs/tags/v3.2.8.zip
+  # # unzip /opt/temp/regenie-v3.2.8.zip -d /opt/temp
+  # # cd /opt/temp/regenie-3.2.8
+  # # BGEN_PATH=/opt/temp/v1.1.7 HAS_BOOST_IOSTREAM=1 STATIC=1 cmake -DCMAKE_INSTALL_PREFIX=/opt/tools/regenie/3.2.8 .
+  # # make && make install
+  # # ln -s /opt/tools/regenie/3.2.8/bin/regenie /usr/local/bin
+
+  # Install CUDA 11.7 which should be adjusted as needed
+  mkdir -p /opt/tools/cuda/11.7
+  # wget -cO /opt/temp/cuda_11.7.0_515.43.04_linux.run https://developer.download.nvidia.com/compute/cuda/11.7.0/local_installers/cuda_11.7.0_515.43.04_linux.run
+  sh /opt/temp/cuda_11.7.0_515.43.04_linux.run --silent --tookkit --toolkitpath=/opt/tools/cuda/11.7
+
+  # Install SRAtools
+  mkdir -p /opt/tools/sratoolkit/3.1.0
+  # wget -cO /opt/temp/sratoolkit.3.1.0-ubuntu64.tar.gz https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/3.1.0/sratoolkit.3.1.0-ubuntu64.tar.gz
+  tar xf /opt/temp/sratoolkit.3.1.0-ubuntu64.tar.gz -C /opt/temp
+  mv /opt/temp/sratoolkit.3.1.0-ubuntu64/* /opt/tools/sratoolkit/3.1.0
+  ln -s /opt/tools/sratoolkit/3.1.0/bin/* /usr/local/bin
+
+  # Install HTSlib, required by QTLtools
+  mkdir -p /opt/tools/htslib/1.17
+  # wget -cO /opt/temp/htslib-1.17.tar.bz2 https://github.com/samtools/htslib/releases/download/1.17/htslib-1.17.tar.bz2
+  tar xf /opt/temp/htslib-1.17.tar.bz2 -C /opt/temp
+  cd /opt/temp/htslib-1.17
+  ./configure --prefix=/opt/tools/htslib/1.17
+  make && make install
+  ln -s /opt/tools/htslib/1.17/bin/* /usr/local/bin
+
+  # Install BCFtools
+  mkdir -p /opt/tools/bcftools/1.17
+  # wget -cO /opt/temp/bcftools-1.17.tar.bz2 https://github.com/samtools/bcftools/releases/download/1.17/bcftools-1.17.tar.bz2
+  tar xf /opt/temp/bcftools-1.17.tar.bz2 -C /opt/temp
+  cd /opt/temp/bcftools-1.17
+  ./configure --prefix=/opt/tools/bcftools/1.17
+  make && make install
+  ln -s /opt/tools/bcftools/1.17/bin/bcftools /usr/local/bin
+
+  # Install SAMtools
+  mkdir -p /opt/tools/samtools/1.17
+  # wget -cO /opt/temp/samtools-1.17.tar.bz2 https://github.com/samtools/samtools/releases/download/1.17/samtools-1.17.tar.bz2
+  tar xf /opt/temp/samtools-1.17.tar.bz2 -C /opt/temp
+  cd /opt/temp/samtools-1.17
+  ./configure --prefix=/opt/tools/samtools/1.17
+  make && make install
+  ln -s /opt/tools/samtools/1.17/bin/samtools /usr/local/bin
+
+  # Install fastp
+  mkdir -p /opt/tools/fastp/0.23.4/bin
+  tar xf /opt/temp/fastp-0.23.4.tar.gz -C /opt/temp
+  cd /opt/temp/fastp-0.23.4
+  make
+  mv fastp /opt/tools/fastp/0.23.4/bin
+  ln -s /opt/tools/fastp/0.23.4/bin/fastp /usr/local/bin
+
+  # Install BWA
+  mkdir -p /opt/tools/bwa/0.7.18/bin
+  # wget -cO /opt/temp/bwa-0.7.18.tar.bz2 https://github.com/lh3/bwa/archive/refs/tags/v0.7.18.tar.gz
+  tar xf /opt/temp/bwa-0.7.18.tar.bz2 -C /opt/temp
+  cd /opt/temp/bwa-0.7.18
+  make
+  mv bwa qualfa2fq.pl xa2multi.pl /opt/tools/bwa/0.7.18/bin
+  ln -s /opt/tools/bwa/0.7.18/bin/bwa /usr/local/bin
+
+  # Install STAR
+  mkdir -p /opt/tools/STAR/2.7.11b/bin
+  # wget -cO /opt/temp/STAR-2.7.11b.tar.gz https://github.com/alexdobin/STAR/archive/refs/tags/2.7.11b.tar.gz
+  tar xf /opt/temp/STAR-2.7.11b.tar.gz -C /opt/temp
+  cd /opt/temp/STAR-2.7.11b/source
+  make
+  mv /opt/temp/STAR-2.7.11b/source/STAR /opt/tools/STAR/2.7.11b/bin
+  ln -s /opt/tools/STAR/2.7.11b/bin/STAR /usr/local/bin
+
+  # Install subread, including featureCounts
+  mkdir -p /opt/tools/subread/2.0.6/bin
+  # wget -cO /opt/temp/subread-2.0.6-source.tar.gz https://sourceforge.net/projects/subread/files/subread-2.0.6/subread-2.0.6-source.tar.gz
+  tar xf /opt/temp/subread-2.0.6-source.tar.gz -C /opt/temp
+  cd /opt/temp/subread-2.0.6-source/src
+  make -f Makefile.Linux
+  mv /opt/temp/subread-2.0.6-source/bin/* /opt/tools/subread/2.0.6/bin
+  ln -s /opt/tools/subread/2.0.6/bin/featureCounts /usr/local/bin
+
+  # salmon, quantify transcript expression
+  mkdir -p /opt/tools/salmon/1.10.0/bin
+  mkdir -p /opt/tools/salmon/1.10.0/lib
+  # wget -cO /opt/temp/salmon-1.10.0_linux_x86_64.tar.gz https://github.com/COMBINE-lab/salmon/releases/download/v1.10.0/salmon-1.10.0_linux_x86_64.tar.gz
+  tar xf /opt/temp/salmon-1.10.0_linux_x86_64.tar.gz -C /opt/temp
+  mv /opt/temp/salmon-latest_linux_x86_64/bin/* /opt/tools/salmon/1.10.0/bin
+  mv /opt/temp/salmon-latest_linux_x86_64/lib/* /opt/tools/salmon/1.10.0/lib
+  ln -s /opt/tools/salmon/1.10.0/bin/salmon /usr/local/bin
+
+  # Install BEDtools
+  mkdir -p /opt/tools/bedtools/2.31.1
+  # wget -cO /opt/temp/bedtools-2.31.1.tar.gz https://github.com/arq5x/bedtools2/releases/download/v2.31.1/bedtools-2.31.1.tar.gz
+  tar xf /opt/temp/bedtools-2.31.1.tar.gz -C /opt/temp
+  cd /opt/temp/bedtools2
+  make
+  mv /opt/temp/bedtools2/bin /opt/tools/bedtools/2.31.1
+  mv /opt/temp/bedtools2/scripts /opt/tools/bedtools/2.31.1
+  ln -s /opt/tools/bedtools/2.31.1/bin/* /usr/local/bin
+
+  # Install BEDOPS
+  mkdir -p /opt/tools/bedops/2.4.41
+  # wget -cO /opt/temp/bedops-2.4.41.tar.gz https://github.com/bedops/bedops/archive/refs/tags/v2.4.41.tar.gz
+  tar xf /opt/temp/bedops-2.4.41.tar.gz -C /opt/temp
+  cd /opt/temp/bedops-2.4.41
+  make all
+  mv /opt/temp/bedops-2.4.41/bin /opt/tools/bedops/2.4.41
+  ln -s /opt/tools/bedops/2.4.41/bin/* /usr/local/bin
+
+  # Install PLINK1.9
+  mkdir -p /opt/tools/plink/1.9
+  # wget -cO /opt/temp/plink_linux_x86_64_20230116.zip https://s3.amazonaws.com/plink1-assets/plink_linux_x86_64_20230116.zip
+  unzip /opt/temp/plink_linux_x86_64_20230116.zip -d /opt/tools/plink/1.9
+  ln -s /opt/tools/plink/1.9/plink /usr/local/bin/plink1.9
+
+  # Install QTLtools 1.3.1, require HTSlib
+  mkdir -p /opt/tools/qtltools/1.3.1
+  # wget -cO /opt/temp/R-4.1.0.tar.gz https://cran.r-project.org/src/base/R-4/R-4.1.0.tar.gz
+  tar xf /opt/temp/R-4.1.0.tar.gz -C /opt/temp
+  cd /opt/temp/R-4.1.0
+  ./configure
+  cd src/nmath/standalone
+  make
+  # wget -cO /opt/temp/QTLtools-1.3.1.tar.gz https://qtltools.github.io/qtltools/binaries/QTLtools_1.3.1_source.tar.gz
+  tar xf /opt/temp/QTLtools-1.3.1.tar.gz -C /opt/temp
+  cd /opt/temp/qtltools
+  sed -i \
+    -e 's#^\(BOOST_INC=\).*#\1/usr/include#g' \
+    -e 's#^\(BOOST_LIB=\).*#\1/usr/lib/x86_64-linux-gnu#g' \
+    -e 's#^\(RMATH_INC=\).*#\1/opt/temp/R-4.1.0/src/include#g' \
+    -e 's#^\(RMATH_LIB=\).*#\1/opt/temp/R-4.1.0/src/nmath/standalone#g' \
+    -e 's#^\(HTSLD_INC=\).*#\1/opt/temp/htslib-1.17#g' \
+    -e 's#^\(HTSLD_LIB=\).*#\1/opt/temp/htslib-1.17#g' \
+    -e 's#^\(LIB_FLAGS=.*\)#\1 -lcrypto -ldeflate#g' \
+    Makefile
+  make
+  mv /opt/temp/qtltools/bin /opt/tools/qtltools/1.3.1
+  mv /opt/temp/qtltools/scripts /opt/tools/qtltools/1.3.1
+  ln -s /opt/tools/qtltools/1.3.1/bin/* /usr/local/bin
+
+  # Install ADMIXTURE
+  mkdir -p /opt/tools/admixture/1.3.0
+  # wget -cO /opt/temp/admixture_linux-1.3.0.tar.gz https://dalexander.github.io/admixture/binaries/admixture_linux-1.3.0.tar.gz
+  tar xf /opt/temp/admixture_linux-1.3.0.tar.gz -C /opt/temp
+  mv /opt/temp/dist/admixture_linux-1.3.0/* /opt/tools/admixture/1.3.0
+  ln -s /opt/tools/admixture/1.3.0/admixture /usr/local/bin/admixture
+
+  # Install qctool
+  mkdir -p /opt/tools/qctool/2.2.1
+  # wget -cO /opt/temp/qctool_v2.2.0-CentOS_Linux7.8.2003-x86_64.tgz https://www.well.ox.ac.uk/~gav/resources/qctool_v2.2.0-CentOS_Linux7.8.2003-x86_64.tgz
+  tar xf /opt/temp/qctool_v2.2.0-CentOS_Linux7.8.2003-x86_64.tgz -C /opt/temp
+  mv "/opt/temp/qctool_v2.2.0-CentOS Linux7.8.2003-x86_64/"* /opt/tools/qctool/2.2.1
+  ln -s /opt/tools/qctool/2.2.1/qctool /usr/local/bin/qctool
+
+  # Install GCTA
+  mkdir -p /opt/tools/GCTA/1.94.1
+  # wget -cO /opt/temp/gcta-1.94.1-linux-x86_64-static https://github.com/jianyangqt/gcta/releases/download/v1.94.1/gcta-1.94.1-linux-x86_64-static
+  mv /opt/temp/gcta-1.94.1-linux-x86_64-static /opt/tools/GCTA/1.94.1/
+  chmod 755 /opt/tools/GCTA/1.94.1/gcta-1.94.1-linux-x86_64-static
+  ln -s /opt/tools/GCTA/1.94.1/gcta-1.94.1-linux-x86_64-static /usr/local/bin/gcta
+
+  # Insstall GATK
+  mkdir -p /opt/tools/GATK
+  # wget -cO /opt/temp/gatk-4.5.0.0.tar.gz https://github.com/broadinstitute/gatk/releases/download/4.5.0.0/gatk-4.5.0.0.zip
+  unzip /opt/temp/gatk-4.5.0.0.zip -d /opt/temp
+  mv /opt/temp/gatk-4.5.0.0 /opt/tools/GATK/4.5.0.0
+  ln -s /opt/tools/GATK/4.5.0.0/gatk /usr/local/bin/gatk
+
+  # Install bigWig utilities
+  mkdir -p /opt/tools/kent_utils/2.10/bin
+  tar xf /opt/temp/hgdownload.soe.ucsc.edu.tar.gz -C /opt/temp
+  mv /opt/temp/hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/* /opt/tools/kent_utils/2.10/bin
+  chmod 755 /opt/tools/kent_utils/2.10/bin/*
+  ln -s /opt/tools/kent_utils/2.10/bin/* /usr/local/bin/
+
+  # Install Python packages
+  python3 -m pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+  python3 -m pip install numpy==1.26.4 scipy==1.13.1 pandas==2.2.2 polars==0.20.30
+  python3 -m pip install matplotlib==3.9.0 seaborn==0.13.2 shap==0.45.1
+  python3 -m pip install ldsc==2.0.0 pysam==0.22.1 pyBigWig==0.3.22
+  python3 -m pip install torch==2.0.0 torchvision==0.15.1 torchaudio==2.0.1 pyro-ppl==1.9.0
+  python3 -m pip install pyPINTS==1.1.12
+
+  # Install R packages
+  R --vanilla <<'EOF'
+    options(repos = "https://mirrors.tuna.tsinghua.edu.cn/CRAN/")
+    install.packages(c('devtools', 'tidyverse')) # Basic packages
+
+    # dREG dependencies
+    install.packages(c('data.table', 'e1071', 'mvtnorm', 'randomForest', 'rmutil', 'snowfall'))
+    devtools::install_version('rphast', version='1.6.9')
+
+    # Rgtsvm dependencies
+    install.packages('snow', 'bit64', 'Matrix', 'SparseM')
+EOF
+
+  # Install R/bigWig, enssential for dREG
+  # wget -cO bigWig-0.2-9.tar.gz https://github.com/andrelmartins/bigWig/archive/refs/tags/v0.2-9.tar.gz
+  tar xf /opt/temp/bigWig-0.2-9.tar.gz -C /opt/temp
+  R CMD INSTALL /opt/temp/bigWig-0.2-9/bigWig
+
+  # Install Rgtsvm, essential for dREG of GPU-mode
+  # cd /opt/temp
+  # git clone https://github.com/Danko-Lab/Rgtsvm.git
+  # tar zcf /opt/temp/Rgtsvm.tar.gz Rgtsvm
+  tar xf /opt/temp/Rgtsvm.tar.gz -C /opt/temp
+  cd /opt/temp/Rgtsvm
+  R CMD INSTALL --configure-args="--with-cuda-home=/opt/tools/cuda/11.7 --with-boost-home=/usr --with-cuda-arch=sm_60" Rgtsvm
+
+  # Install dREG
+  mkdir -p /opt/tools/dREG/bin
+  # git clone https://github.com/Danko-Lab/dREG
+  tar xf /opt/temp/dREG.tar.gz -C /opt/temp
+  cd /opt/temp/dREG
+  make dreg
+  chmod 755 *.bsh *.pl
+  mv run_dREG.R run_predict.R run_dREG.bsh run_predict.bsh bed_merge.pl writeBed.bsh /opt/tools/dREG/bin
+  ln -s /opt/tools/dREG/bin/* /usr/local/bin
+
+  # Install GEDI for nascent RNA
+  # Install qualimap, cutadapt, umi_tools, fastq-multx
+  # Install velocyto
+
+  # Clean up
+  apt autoremove && apt clean
+  rm -fr /opt/temp /root/.cache/*
+
+%test
+  # echo "All done"
+
+
+%startscript
+  # source /opt/tools/ldsc/.ldsc_venv/bin/activate
+
+
+%labels
+  Author: Zhenhua Zhang
+  E-mail: zhenhua.zhang217@gmail.com
+  Version: v1.0.0
+
+
+%help
+  A singularity container including pipeline tools used in Zhang et al [doi:xxx].
+
+  For the current version, the following packages are included:
+  +------------------------------------------------------+
+  | Tool        | Version   | Path                       |
+  | :---------: | :-------: | :------------------------: |
+  | admixture   | 1.3.0     | /opt/tools/admixture/1.3.0 |
+  | PLINK       | 1.9       | /opt/tools/plink/1.9       |
+  | regenie     | 3.2.8     | /opt/tools/regenie/3.2.8   |
+  | GCTA        | 1.94.1    | /opt/tools/GCTA/1.94.1     |
+  | qctool      | 2.2.1     | /opt/tools/qctool/2.2.1    |
+  | bgen        | 1.1.7     | /opt/tools/bgen/1.1.7      |
+  | BCFtools    | 1.17      | /opt/tools/bcftools/1.17   |
+  | SAMtools    | 1.17      | /opt/tools/samtools/1.17   |
+  | STAR        | 2.0.11b   | /opt/tools/STAR/2.0.11b    |
+  | LDSC        | 0.5.2     | /opt/tools/ldsc/0.5.2      |
+  +------------------------------------------------------+
+
+  Contact: zhenhua.zhang217@gmail.com or zhang_zhenhua@gihb.ac.cn
