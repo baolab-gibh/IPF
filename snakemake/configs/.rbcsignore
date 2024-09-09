@@ -1,0 +1,24 @@
+# Excluding the following files
+# Basic directories
+**/.ipynb_checkpoints/
+**/__pycache__/
+**/.ccls-cache/
+**/.vscode/
+**/.venv/
+**/.env/
+**/.git/
+**/build/
+
+# Basic hidden files
+**/.gitignore
+**/*.pyc
+**/*.o
+
+# The ignore file itself
+**/.rbcsignore
+
+# For MacOS
+**/.DS_Store
+
+# Not jupyte notebook shoudl be transfromed
+**/*.ipynb

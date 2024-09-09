@@ -1,0 +1,47 @@
+---
+
+# Project
+project_dir: &base_dir !AsPath ~/Documents/projects/wp_ipf
+project_token: IPF
+
+# Singularity image including major tools
+singularity_image: !AsPath [*base_dir, scripts/singularity/tre_snp_toolkit.sif]
+
+# Scripts
+python_scripts: !AsPath [*base_dir, scripts/py3]
+
+# Inputs
+# batch_token: batch_1.chunk_01
+# sample_table: !AsPath [*base_dir, outputs/overview/sample_information/sample_info.batch_1.chunk_01.txt]
+chunk_token: chunk_23_24 # Update this string together with sample_table
+sample_table: !AsPath [*base_dir, outputs/overview/sample_information/chunks/chunk_23_24.txt] # A table of sample information
+sample_blacklist: !AsPath [*base_dir, outputs/overview/sample_information/sample_info.human.paired_end.top_300.blacklist.fragments_le_5M.txt]
+
+# Reference genome or aligner index
+reference_genome: !AsPath [*base_dir, outputs/references/genome/GRCh38.primary_assembly.genome.only_chroms.fa]
+reference_genome_dict: !AsPath [*base_dir, outputs/references/genome/GRCh38.primary_assembly.genome.only_chroms.dict]
+reference_genome_index: !AsPath [*base_dir, outputs/references/genome/GRCh38.primary_assembly.genome.only_chroms.fa.fai]
+reference_genome_star_index: !AsPath [*base_dir, outputs/references/genome/star_index]
+reference_genome_chrom_length: !AsPath [*base_dir, outputs/references/genome/GRCh38.primary_assembly.genome.only_chroms.chrom_length.txt]
+
+# Reference variants
+reference_variants_vcf: !AsPath [*base_dir, outputs/references/variant/00-common_all.vcf.gz]
+reference_variants_vcf_tbi: !AsPath [*base_dir, outputs/references/variant/00-common_all.vcf.gz.tbi]
+
+# Feature regions
+genomic_feature: !AsPath [*base_dir, outputs/references/genomic_feature/gencode.v46.basic.annotation.gtf.gz]
+exon_regions: !AsPath [*base_dir, outputs/references/genomic_feature/gencode.v46.basic.annotation.exon_regions.gtf.gz]
+intron_regions: !AsPath [*base_dir, outputs/references/genomic_feature/gencode.v46.basic.annotation.intron_regions.gtf.gz]
+enhancer_regions: !AsPath [*base_dir, outputs/references/genomic_feature/gencode.v46.basic.annotation.enhancer_regions.gtf.gz]
+transcript_regions: !AsPath [*base_dir, outputs/references/genomic_feature/gencode.v46.basic.annotation.transcript_regions.gtf.gz]
+
+# dREG pretrained model
+dreg_pretrained_model: !AsPath [*base_dir, inputs/dREG/models/asvm.gdm.6.6M.20170828.rdata]
+
+# Output controlling
+output_dir: !AsPath [*base_dir, outputs/analysis]
+
+# Uploading to 
+remote_dir: !AsPath /home/zzhang/Documents/projects/wp_ipf/outputs/analysis
+remote_user: zzhang
+remote_ipaddr: 192.168.143.54
