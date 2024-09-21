@@ -119,7 +119,7 @@ rule s02_haplotype_caller_ready:
   input:
     lambda wc: expand(variant_dir / wc.group_id / 'per_chunk' / (wc.group_id + '.{per_chunk}.g.vcf.gz'), per_chunk=all_chunks),
   output:
-    variant_dir / '{group_id}/{group_id}.haplotype_caller_ready'
+    variant_dir / '{group_id}/{group_id}.haplotype_caller.ready'
   shell:
     '''touch {output}'''
 

@@ -13,8 +13,8 @@ python_scripts: !AsPath [*base_dir, scripts/py3]
 # Inputs
 # batch_token: batch_1.chunk_01
 # sample_table: !AsPath [*base_dir, outputs/overview/sample_information/sample_info.batch_1.chunk_01.txt]
-chunk_token: chunk_23_24 # Update this string together with sample_table
-sample_table: !AsPath [*base_dir, outputs/overview/sample_information/chunks/chunk_23_24.txt] # A table of sample information
+chunk_token: chunk_27_28 # Update this string together with sample_table
+sample_table: !AsPath [*base_dir, outputs/overview/sample_information/chunks/chunk_27_28.txt] # A table of sample information
 sample_blacklist: !AsPath [*base_dir, outputs/overview/sample_information/sample_info.human.paired_end.top_300.blacklist.fragments_le_5M.txt]
 
 # Reference genome or aligner index

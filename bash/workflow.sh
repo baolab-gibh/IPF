@@ -21,7 +21,7 @@ cd ${project_dir}/temps || return 1
 #
 ## Main pipeline
 #
-n_jobs=20
+n_jobs=200
 # per_run=identify_tre_pints
 prof_dir=${project_dir}/scripts/snakemake/configs
 log_dir=${project_dir}/outputs/analysis/logs
@@ -49,16 +49,16 @@ for per_run in main_ppl identify_tre_pints; do
   # Dry-run
   snakemake -d ${work_dir} -s ${smk_file} -j ${n_jobs} -C myconfigfile=${cfg_file} --profile ${prof_dir} --dry-run >| ${log_dir}/${per_run}.dry_run.txt
   awk '/^Job stats:$/ {count++} count >= 2 {print}' ${log_dir}/${per_run}.dry_run.txt
-  # cat ${log_dir}/${per_run}.dry_run.txt | tail -n 100
-  # less -X ${log_dir}/${per_run}.dry_run.txt
+  cat ${log_dir}/${per_run}.dry_run.txt | tail -n 100
+  less -X ${log_dir}/${per_run}.dry_run.txt
 
   # grep -oE 'SRR[0-9]+.mkdup.sncr.bqsr.cram' ${log_dir}/${per_run}.dry_run.txt | cut -f1 -d. | sort -u | xargs -I% rm -r %/%.mkdup.sncr.bqsr.cram
   # Unlock current .snakemake folder
   snakemake -d ${work_dir} -s ${smk_file} -j ${n_jobs} -C myconfigfile=${cfg_file} --profile ${prof_dir} --unlock
 
- # Run
+  # Run
   if [[ ${USER} == 'zhzhang_gibh' ]]; then
-    snakemake -d ${work_dir} -s ${smk_file} -j ${n_jobs} -C myconfigfile=${cfg_file} --profile ${prof_dir} 2>&1 | grep -v 'sacct: error:'
+    snakemake -k -d ${work_dir} -s ${smk_file} -j ${n_jobs} -C myconfigfile=${cfg_file} --profile ${prof_dir} 2>&1 | grep -v 'sacct: error:'
   elif [[ ${USER} == 'zzhang' ]]; then
     snakemake -k -d ${work_dir} -s ${smk_file} -j ${n_jobs} -C myconfigfile=${cfg_file} | grep -v 'sacct: error:'
   fi
@@ -95,6 +95,8 @@ for per_sample in *; do
     continue
   fi
 done
+
+# plink --bfile ../ped/${per_sample} --make-bed --out ../ped/${per_sample}
 
 
 #
@@ -138,3 +140,8 @@ cat /public/home/zhzhang_gibh/Documents/projects/wp_ipf/outputs/overview/sample_
 key_file=${HOME}/.ssh/baolab_id_rsa
 IFS=','; read -r _ _ _ src_fp < <(grep --color=none SRR17735640 /public/home/zhzhang_gibh/Documents/projects/wp_ipf/outputs/overview/sample_information/sample_info.human.paired_end.cram_path.txt)
 rsync -avzhL -e "ssh -i ${key_file}" zzhang@192.168.143.54:${src_fp} /public/home/zhzhang_gibh/Documents/projects/wp_ipf/outputs/analysis/read_alignment/alignment/SRR17735640/SRR17735640.mkdup.sncr.bqsr.cram
+
+
+for x in SRR25074725 SRR25074726 SRR25074727 SRR25074728 SRR25074729 SRR25074730 SRR25074731 SRR25074732 SRR25074733 SRR25074734 SRR25074735 SRR25074736 SRR25074737 SRR25074738 SRR25074739 SRR25074740 SRR25074741 SRR25074742 SRR25074743 SRR25074744 SRR25074745 SRR25074746 SRR25074747 SRR25074748 SRR25074749 SRR25074750 SRR25074751 SRR25074752 SRR25074753 SRR25074754 SRR25074755 SRR25074756 SRR25074757 SRR25074758 SRR25074759 SRR25074760 SRR25074761 SRR25074762 SRR25074763 SRR25074764 SRR25074765 SRR25074766 SRR25074767 SRR25074768 SRR25074769 SRR25074770 SRR25074771 SRR25074772 SRR25074773 SRR25074774; do
+  rm -fr $x
+done

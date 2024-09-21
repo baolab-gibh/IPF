@@ -79,7 +79,7 @@ rule s01_preproc_fastq:
     html_report = quality_control_dir / '{group_id}/{group_id}.{sample_id}.html',
     json_report = quality_control_dir / '{group_id}/{group_id}.{sample_id}.json'
   resources:
-    cpus_per_task = 2, mem = '4G', time = '40:00'
+    cpus_per_task = 2, mem = '4G', time = '2:00:00'
   params:
     output_dir = lambda wildcards, output: Path(output[0]).parent
   shell:

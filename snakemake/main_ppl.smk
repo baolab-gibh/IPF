@@ -5,10 +5,6 @@
 # Created: May 23, 2024
 # Updated: Jun 13, 2024
 
-# TODO:
-# 1. Add md5sum check for the uploaded files.
-
-
 import sys, csv, pathlib, yaml, benedict
 from snakemake.utils import min_version
 
@@ -132,7 +128,7 @@ wildcard_constraints:
 localrules:
   all,
   main_s01_download_single_end, main_s01_download_paired_end,
-  it_s02_bigwig_is_ready, main_s03_upload_tres, main_s04_upload_tres_all,
+  it_s02_create_bigwig_done, main_s03_upload_tres, main_s04_upload_tres_all,
   cv_s02_haplotype_caller_ready, main_s03_upload_variants, main_s04_upload_variants_all,
   qt_s02_count_reads_ready, main_s03_upload_read_counts, main_s04_upload_readcounts_all,
   main_s03_upload_alignments, main_s04_upload_alignments_all,
@@ -141,33 +137,32 @@ localrules:
 #
 ## Rules
 #
-# Pipeline to control read alignment
+# Pipeline to control read alignment.
 module align_reads:
   snakefile: 'align_reads_ppl.smk'
   config: (bconfig, sample_info_dict)
+use rule * from align_reads as ar_*
 
 
+# Pipeline to quantify gene expression.
 module quantify_expression:
   snakefile: 'quantify_expression_ppl.smk'
   config: (bconfig, sample_info_dict)
+use rule * from quantify_expression as qt_*
 
 
-# Pipeline to control variant calling
+# Pipeline to control variant calling.
 module call_variants:
   snakefile: 'call_variants_ppl.smk'
   config: (bconfig, sample_info_dict)
+use rule * from call_variants as cv_*
 
 
 # Pipeline to control transcriptional regulatory element identification.
 module identify_tre:
   snakefile: 'identify_tre_ppl.smk'
   config: (bconfig, sample_info_dict)
-
-
-use rule * from align_reads as ar_*
-use rule * from call_variants as cv_*
 use rule * from identify_tre as it_*
-use rule * from quantify_expression as qt_*
 
 
 # Final outputs
@@ -177,6 +172,7 @@ call_variants_done = upload_dir / ('call_variant.' + chunk_token + '.done')
 identify_tres_done = upload_dir / ('identify_tre.' + chunk_token + '.done')
 read_counts_done = upload_dir / ('quantify_expression.' + chunk_token + '.done')
 final_output = [align_reads_done, call_variants_done, read_counts_done, identify_tres_done]
+
 
 rule all:
   input: final_output
@@ -282,13 +278,13 @@ rule main_s04_upload_alignments_all:
 
 rule main_s03_upload_tres:
   input:
-    bw_pl_file = tre_dir / 'read_coord/{sample_id}/{sample_id}.pints_pl.bw',
-    bw_mn_file = tre_dir / 'read_coord/{sample_id}/{sample_id}.pints_mn.bw',
-    dv_tre_file = tre_dir / 'tre_results/{sample_id}/{sample_id}.pints_1_divergent_peaks.bed',
-    bd_tre_file = tre_dir / 'tre_results/{sample_id}/{sample_id}.pints_1_bidirectional_peaks.bed',
-    ud_tre_file = tre_dir / 'tre_results/{sample_id}/{sample_id}.pints_1_unidirectional_peaks.bed',
+    bw_pl_file = tre_dir / 'read_coord/{group_id}/{group_id}.pints_pl.bw',
+    bw_mn_file = tre_dir / 'read_coord/{group_id}/{group_id}.pints_mn.bw',
+    dv_tre_file = tre_dir / 'tre_results/{group_id}/{group_id}.pints_1_divergent_peaks.bed',
+    bd_tre_file = tre_dir / 'tre_results/{group_id}/{group_id}.pints_1_bidirectional_peaks.bed',
+    ud_tre_file = tre_dir / 'tre_results/{group_id}/{group_id}.pints_1_unidirectional_peaks.bed',
   output:
-    upload_dir / 'tres/{group_id}.upload_tre.done'
+    upload_dir / 'tres/{group_id}.upload_tres.pints.done'
   params:
     output_dir = lambda wildcards, output: Path(output[0]).parent,
     remote_dir = lambda wc: remote_dir / 'tre_identification/tre_results' / wc.group_id,
@@ -306,7 +302,7 @@ rule main_s03_upload_tres:
 
 
 rule main_s04_upload_tres_all:
-  input: expand(upload_dir / 'tres/{group_id}.upload_tre.done', group_id=all_groups),
+  input: expand(upload_dir / 'tres/{group_id}.upload_tres.pints.done', group_id=all_groups),
   output: identify_tres_done
   shell: '''touch {output}'''
 
